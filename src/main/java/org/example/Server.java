@@ -19,40 +19,30 @@ class RequestProcessor extends Thread {
             InputStream inputStream;
             InputStreamReader inputStreamReader;
             StringBuffer stringBuffer;
-            String request;
-            int x;
 
             while (true) {
                 System.out.println("Getting the stream");
                 inputStream = socket.getInputStream();
                 inputStreamReader = new InputStreamReader(inputStream);
-                stringBuffer = new StringBuffer();
-                while (true) {
-                    x = inputStreamReader.read();
-                    if (stringBuffer.toString().equals("exit") || x == -1 || x == Server.TERMINATOR) {
-                        break;
-                    }
-                    stringBuffer.append((char) x);
-                }
-                request = stringBuffer.toString();
-                System.out.println("Request: " + request);
-
-                if (request.equals("exit")) {
-                    System.out.println("Closing the app");
-                    socket.close();
-                    break;
-                }
-                request = request + Server.TERMINATOR;
+                stringBuffer = Server.readStream(inputStreamReader);
+                System.out.println("Request: " + stringBuffer.toString());
 
                 outputStream = socket.getOutputStream();
                 outputStreamWriter = new OutputStreamWriter(outputStream);
-                outputStreamWriter.write(request);
+                if (stringBuffer.toString().equals("exit")) {
+                    System.out.println("Closing the app");
+                    inputStreamReader.close();
+                    outputStreamWriter.close();
+                    socket.close();
+                    break;
+                }
+
+                stringBuffer.append(Server.TERMINATOR);
+                outputStreamWriter.write(stringBuffer.toString());
                 outputStreamWriter.flush(); // response sent
             }
-
-
-        } catch (Exception exception) {
-            System.out.println(exception);
+        } catch (IOException exception) {
+            System.out.println("Request thread exception: " + exception);
         }
     }
 }
@@ -76,8 +66,7 @@ class Server {
                 System.out.println("Waiting for request...");
                 socket = serverSocket.accept();
                 System.out.println("Request arrived..");
-//                new RequestProcessor(socket);
-                connectSocket(socket);
+                new RequestProcessor(socket);
             }
         } catch (Exception e) {
             System.out.println(e);
@@ -85,49 +74,20 @@ class Server {
         }
     }
 
-    public void connectSocket(Socket socket) {
+    public static StringBuffer readStream(Reader inputStream)
+    {
+        StringBuffer stringBuffer = new StringBuffer();
         try {
-            OutputStream outputStream;
-            OutputStreamWriter outputStreamWriter;
-            InputStream inputStream;
-            InputStreamReader inputStreamReader;
-            StringBuffer stringBuffer;
-            String request;
-            int x;
-
+            char x;
             while (true) {
-                System.out.println("Getting the stream");
-                inputStream = socket.getInputStream();
-                inputStreamReader = new InputStreamReader(inputStream);
-                stringBuffer = new StringBuffer();
-                while (true) {
-                    x = inputStreamReader.read();
-                    if (stringBuffer.toString().equals("exit") || x == -1 || x == Server.TERMINATOR) {
-                        break;
-                    }
-                    stringBuffer.append((char) x);
-                }
-                request = stringBuffer.toString();
-                System.out.println("Request: " + request);
-
-                if (request.equals("exit")) {
-                    System.out.println("Closing the app");
-                    socket.close();
-                    serverSocket.close();
-                    break;
-                }
-                request = request + Server.TERMINATOR;
-
-                outputStream = socket.getOutputStream();
-                outputStreamWriter = new OutputStreamWriter(outputStream);
-                outputStreamWriter.write(request);
-                outputStreamWriter.flush(); // response sent
+                x = (char) inputStream.read();
+                if (x == Server.TERMINATOR) break; // reads till the terminator
+                stringBuffer.append(x);
             }
-
-
-        } catch (Exception exception) {
-            System.out.println(exception);
+        } catch (IOException e) {
+            throw new RuntimeException("ReadStream error: " + e);
         }
+        return stringBuffer;
     }
 
     public static void main(String[] args) {
