@@ -32,20 +32,18 @@ class Client
             while (true)
             {
                 System.out.println("Write your input:");
-                request = scanner.nextLine();
-                System.out.println("Processing...");
+                request = scanner.nextLine() + Server.TERMINATOR;
                 outputStream=socket.getOutputStream();
                 outputStreamWriter=new OutputStreamWriter(outputStream);
                 outputStreamWriter.write(request);
-                outputStreamWriter.flush(); // request is sent
-// retrieving input stream and its reader, for receiving    acknowledgement or response
+                outputStreamWriter.flush();
                 inputStream=socket.getInputStream();
                 inputStreamReader=new InputStreamReader(inputStream);
                 stringBuffer=new StringBuffer();
                 while(true)
                 {
                     x=inputStreamReader.read();
-                    if(x== '\n' || x==-1) break; // reads till the terminator
+                    if(x== Server.TERMINATOR || x==-1) break; // reads till the terminator
                     stringBuffer.append((char)x);
                 }
                 response=stringBuffer.toString();

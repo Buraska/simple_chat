@@ -2,18 +2,18 @@ package org.example;
 
 import java.io.*;
 import java.net.*;
-class RequestProcessor extends Thread
-{
+
+
+class RequestProcessor extends Thread {
     private Socket socket;
-    RequestProcessor(Socket socket)
-    {
-        this.socket=socket;
+
+    RequestProcessor(Socket socket) {
+        this.socket = socket;
         start();
     }
-    public void run()
-    {
-        try
-        {
+
+    public void run() {
+        try {
             OutputStream outputStream;
             OutputStreamWriter outputStreamWriter;
             InputStream inputStream;
@@ -21,83 +21,122 @@ class RequestProcessor extends Thread
             StringBuffer stringBuffer;
             String request;
             int x;
-            while (true)
-            {
-                inputStream=socket.getInputStream();
-                inputStreamReader=new InputStreamReader(inputStream);
-                stringBuffer=new StringBuffer();
-                x=inputStreamReader.read();
-                while(x!=-1 && x != '#' )
-                {
-                    System.out.println(stringBuffer.toString());
-                    stringBuffer.append((char)x);
-                    if (stringBuffer.toString().equals("exit"))
-                    {
-                        socket.close();
-                        return;
+
+            while (true) {
+                System.out.println("Getting the stream");
+                inputStream = socket.getInputStream();
+                inputStreamReader = new InputStreamReader(inputStream);
+                stringBuffer = new StringBuffer();
+                while (true) {
+                    x = inputStreamReader.read();
+                    if (stringBuffer.toString().equals("exit") || x == -1 || x == Server.TERMINATOR) {
+                        break;
                     }
-                    x=inputStreamReader.read();
+                    stringBuffer.append((char) x);
                 }
-                stringBuffer.append('\n');
+                request = stringBuffer.toString();
+                System.out.println("Request: " + request);
 
-                request=stringBuffer.toString();
-                System.out.println("Request : "+request);
+                if (request.equals("exit")) {
+                    System.out.println("Closing the app");
+                    socket.close();
+                    break;
+                }
+                request = request + Server.TERMINATOR;
 
-                outputStream=socket.getOutputStream();
-                outputStreamWriter=new OutputStreamWriter(outputStream);
+                outputStream = socket.getOutputStream();
+                outputStreamWriter = new OutputStreamWriter(outputStream);
                 outputStreamWriter.write(request);
                 outputStreamWriter.flush(); // response sent
             }
 
-        }catch(Exception exception)
-        {
+
+        } catch (Exception exception) {
             System.out.println(exception);
         }
     }
 }
-class Server
-{
+
+class Server {
+    public static char TERMINATOR = '\0';
     private ServerSocket serverSocket;
     private int portNumber;
-    Server(int portNumber)
-    {
-        this.portNumber=portNumber;
-        try
-        {
-            serverSocket=new ServerSocket(this.portNumber);
-            startListening();
-        }catch(Exception e)
-        {
+
+    Server(int portNumber) {
+        this.portNumber = portNumber;
+    }
+
+    private void startListening() {
+        try {
+            Socket socket;
+
+            serverSocket = new ServerSocket(this.portNumber);
+            System.out.println("Server is listening on port : " + this.portNumber);
+            while (true) {
+                System.out.println("Waiting for request...");
+                socket = serverSocket.accept();
+                System.out.println("Request arrived..");
+//                new RequestProcessor(socket);
+                connectSocket(socket);
+            }
+        } catch (Exception e) {
             System.out.println(e);
             System.exit(0);
         }
     }
-    private void startListening()
-    {
-        try
-        {
-            Socket socket;
-            while(true)
-            {
 
-                System.out.println("Server is listening on port : "+this.portNumber);
-                socket=serverSocket.accept(); // server is in listening mode
-                System.out.println("Request arrived..");
-// diverting the request to processor with the socket reference
-                new RequestProcessor(socket);
+    public void connectSocket(Socket socket) {
+        try {
+            OutputStream outputStream;
+            OutputStreamWriter outputStreamWriter;
+            InputStream inputStream;
+            InputStreamReader inputStreamReader;
+            StringBuffer stringBuffer;
+            String request;
+            int x;
+
+            while (true) {
+                System.out.println("Getting the stream");
+                inputStream = socket.getInputStream();
+                inputStreamReader = new InputStreamReader(inputStream);
+                stringBuffer = new StringBuffer();
+                while (true) {
+                    x = inputStreamReader.read();
+                    if (stringBuffer.toString().equals("exit") || x == -1 || x == Server.TERMINATOR) {
+                        break;
+                    }
+                    stringBuffer.append((char) x);
+                }
+                request = stringBuffer.toString();
+                System.out.println("Request: " + request);
+
+                if (request.equals("exit")) {
+                    System.out.println("Closing the app");
+                    socket.close();
+                    serverSocket.close();
+                    break;
+                }
+                request = request + Server.TERMINATOR;
+
+                outputStream = socket.getOutputStream();
+                outputStreamWriter = new OutputStreamWriter(outputStream);
+                outputStreamWriter.write(request);
+                outputStreamWriter.flush(); // response sent
             }
-        }catch(Exception e)
-        {
-            System.out.println(e);
+
+
+        } catch (Exception exception) {
+            System.out.println(exception);
         }
     }
-    public static void main(String[] args)
-    {
+
+    public static void main(String[] args) {
         int portNumber;
 
         portNumber = 1111;
 
-        Server server=new Server(portNumber);
+        Server server = new Server(portNumber);
+        server.startListening();
     }
 
 
