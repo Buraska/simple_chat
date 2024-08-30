@@ -7,10 +7,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
+
+
 class Client {
     private String username;
     private String ipAddress;
     private int port;
+    private ChatThread thread;
 
     Client(String username, String ipAddress, int port) {
         this.username = username;
@@ -23,33 +26,25 @@ class Client {
         Socket socket = new Socket(ipAddress, port);
         OutputStream outputStream;
         OutputStreamWriter outputStreamWriter;
-        InputStream inputStream;
-        InputStreamReader inputStreamReader;
-        StringBuffer stringBuffer;
-        String response;
         Scanner scanner = new Scanner(System.in);
-        int x;
+
+        thread = new ChatThread(socket);
+        outputStream = socket.getOutputStream();
+        outputStreamWriter = new OutputStreamWriter(outputStream);
+        Server.writeMessage(username, outputStreamWriter);
 
         while (true) {
-            System.out.printf("%s: ", username);
-            request = scanner.nextLine() + Server.TERMINATOR;
-            outputStream = socket.getOutputStream();
-            outputStreamWriter = new OutputStreamWriter(outputStream);
-            outputStreamWriter.write(request);
-            outputStreamWriter.flush();
-            inputStream = socket.getInputStream();
-            inputStreamReader = new InputStreamReader(inputStream);
-            stringBuffer = new StringBuffer();
-            while (true) {
-                x = inputStreamReader.read();
-                if (x == Server.TERMINATOR || x == -1) break; // reads till the terminator
-                stringBuffer.append((char) x);
-            }
-            response = stringBuffer.toString();
-            System.out.println(response);
-        }
 
-// Raised in case, connection is refused or some other technical issue
+            request = scanner.nextLine();
+//TODO proceed commands with enum. If exit command - leave. Otherwise - chat.
+            Server.writeMessage(request, outputStreamWriter);
+//            inputStream = socket.getInputStream();
+//            inputStreamReader = new InputStreamReader(inputStream);
+//            stringBuffer = Server.readStream(inputStreamReader);
+//
+//            response = stringBuffer.toString();
+//            System.out.println(response);
+        }
     }
 
 
@@ -77,4 +72,37 @@ class Client {
             throw new RuntimeException(e);
         }
     }
+
+    class ChatThread extends Thread
+    {
+        private Socket socket;
+
+        ChatThread(Socket socket)
+        {
+            this.socket = socket;
+            start();
+        }
+
+        public void run()
+        {
+            InputStream inputStream;
+            InputStreamReader inputStreamReader;
+            StringBuffer stringBuffer;
+
+            try {
+                while (true)
+                {
+                    inputStream = socket.getInputStream();
+                    inputStreamReader = new InputStreamReader(inputStream);
+                    stringBuffer = Server.readStream(inputStreamReader);
+                    System.out.println(stringBuffer);
+                }
+
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+    }
+
 }
