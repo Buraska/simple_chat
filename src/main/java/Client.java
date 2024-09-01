@@ -1,5 +1,3 @@
-package org.example;
-
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
@@ -34,16 +32,17 @@ class Client {
         Server.writeMessage(username, outputStreamWriter);
 
         while (true) {
-
             request = scanner.nextLine();
-//TODO proceed commands with enum. If exit command - leave. Otherwise - chat.
             Server.writeMessage(request, outputStreamWriter);
-//            inputStream = socket.getInputStream();
-//            inputStreamReader = new InputStreamReader(inputStream);
-//            stringBuffer = Server.readStream(inputStreamReader);
-//
-//            response = stringBuffer.toString();
-//            System.out.println(response);
+        }
+    }
+
+    private void disconnect() {
+        try {
+            thread.socket.close();
+            System.exit(0);
+        } catch (IOException e) {
+            throw new RuntimeException("Error during disconnection: " + e);
         }
     }
 
@@ -90,11 +89,15 @@ class Client {
             StringBuffer stringBuffer;
 
             try {
+                inputStream = socket.getInputStream();
+                inputStreamReader = new InputStreamReader(inputStream);
                 while (true)
                 {
-                    inputStream = socket.getInputStream();
-                    inputStreamReader = new InputStreamReader(inputStream);
                     stringBuffer = Server.readStream(inputStreamReader);
+                    if (stringBuffer.toString().equals(Server.DISCONNECT_KEY_WORD))
+                    {
+                        disconnect();
+                    }
                     System.out.println(stringBuffer);
                 }
 
