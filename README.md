@@ -12,3 +12,4 @@ backlog: The maximum number of client connections the server will queue before r
 java -jar Client.jar [username] [ipAddress] [port]
 
 
+![chatSh](https://github.com/user-attachments/assets/d0e6cd7a-a6c9-466f-86e0-8a0a5779e96d)
